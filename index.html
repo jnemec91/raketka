@@ -31,6 +31,7 @@
         var liftOff = false;
         var turningAnimationPlayed = false;
         var button;
+        var buttonRotation = 0.5;
         var player;
         var stars;
         var angle = 0;
@@ -38,17 +39,31 @@
         var centerX = 400;
         var centerY = 300;
         var speed = -0.03; // Speed of the movement
-        var gameSpeed = 10;
 
         function preload() {
             this.load.spritesheet('rocket', 'assets/rocket.png', { frameWidth: 272, frameHeight: 500 });
-
+            this.load.spritesheet('asteroid', 'assets/asteroid1.png', { frameWidth: 525, frameHeight: 500 });
             this.load.image('startButton', 'assets/button.png');
             this.load.image('star', 'assets/star.png');
         }
 
         function create() {
-            
+
+            // Create a group for stars
+            stars = this.physics.add.group();
+
+            function createStars() {
+                for (var i = 0; i < 20; i++) {
+                    var x = Phaser.Math.Between(0, config.width);
+                    var y = Phaser.Math.Between(0, config.height);
+                    var star = stars.create(x, y, 'star');
+                    star.setScale(0.5);
+                    star.body.allowGravity = false; // Initially, stars should not be affected by gravity
+                }
+            }
+            // Create the stars
+            createStars();
+                        
             player = this.physics.add.sprite(centerX + radius, centerY, 'rocket');
             player.setScale(0.2);
             player.setCollideWorldBounds(true);
@@ -58,20 +73,50 @@
             score = 0;
             scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FFF' });
 
+
+            // create planet button
             button = this.add.sprite(400, 300, 'startButton');
+            button.setScale(0.25);
             button.setInteractive({ useHandCursor: true });
-            button.on('pointerdown', onButtonClicked);
 
-            // Create a group for stars at random positions
-            stars = this.physics.add.group();
+            button.on('pointerdown', function (){
+            player.anims.play('forward', true);
+            gameStarted = true;
+            });
 
-            for (var i = 0; i < 20; i++) {
-                var x = Phaser.Math.Between(0, config.width);
-                var y = Phaser.Math.Between(0, config.height);
-                var star = stars.create(x, y, 'star');
-                star.setScale(0.5); // Scale down the stars if needed
-                star.body.allowGravity = false; // Initially, stars should not be affected by gravity
-            }
+            button.on('pointerover', function () {
+            button.setScale(0.28); // Example: Scale up when hovered
+            buttonRotation = 0.25;
+            });
+
+            button.on('pointerout', function () {
+                button.setScale(0.25); // Example: Return to normal scale when not hovered
+                buttonRotation = 0.5;
+            });
+
+            // create group for asteroids
+            asteroids = this.physics.add.group();
+
+            // add collider between player and asteroids
+            this.physics.add.collider(player, asteroids, function (player, asteroid) {
+                player.setVelocity(0, 0);
+                player.anims.play('idleRocket', true);
+                gameStarted = false;
+                liftOff = false;
+                turningAnimationPlayed = false;
+                player.x = centerX + radius;
+                player.y = centerY;
+                player.rotation = 0;
+                button.y = 300;
+                button.angle = 0;
+                asteroids.clear(true, true);
+                
+                // Reset the stars
+                stars.clear(true, true);
+                createStars();
+            });
+
+            // create animations for player
 
             this.anims.create({
                 key: 'turnRight',
@@ -97,6 +142,14 @@
                 frameRate: 20
             });
 
+            // create animations for asteroids
+
+            this.anims.create({
+                key: 'asteroid',
+                frames: this.anims.generateFrameNumbers('asteroid', { start: 0, end: 3 }),
+                frameRate: 2,
+                repeat: -1
+            });
         }
 
         function update() {
@@ -116,7 +169,7 @@
                 }
 
                 if (liftOff) {
-                    button.y += gameSpeed;
+                    button.y += 10;
 
                     // Enable gravity for stars
                     stars.children.iterate(function (child) {
@@ -131,15 +184,23 @@
                         }
                     });
 
+                    // start creating asteroids
+                    if (Phaser.Math.Between(0, 100) > 97) {
+                        var asteroid = asteroids.create(Phaser.Math.Between(0, config.width), 0, 'asteroid');
+                        asteroid.setScale(0.1);
+                        asteroid.setVelocityY(Phaser.Math.Between(50, 100));
+                        asteroid.anims.play('asteroid', true);
+                    }
+
                     // contros for the player
                     if (cursors.left.isDown) {
-                        player.setVelocityX(-200);
+                        player.setVelocityX(-450);
                         if (!turningAnimationPlayed) {
                             player.anims.play('turnLeft', true);
                             turningAnimationPlayed = true;
                         }
                     } else if (cursors.right.isDown) {
-                        player.setVelocityX(200);
+                        player.setVelocityX(450);
                         if (!turningAnimationPlayed) {
                             player.anims.play('turnRight', true);
                             turningAnimationPlayed = true;
@@ -164,13 +225,10 @@
                 }
             }
 
-            button.angle += 1;
+            button.angle += buttonRotation;
         }
 
-        function onButtonClicked() {
-            player.anims.play('forward', true);
-            gameStarted = true;
-        }
+
     </script>
 </body>
 </html>
