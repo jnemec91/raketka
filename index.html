@@ -29,6 +29,7 @@
         var game = new Phaser.Game(config);
         var gameStarted = false;
         var liftOff = false;
+        var turningAnimationPlayed = false;
         var button;
         var player;
         var stars;
@@ -40,12 +41,14 @@
         var gameSpeed = 10;
 
         function preload() {
-            this.load.image('rocket', 'assets/rocket.png');
+            this.load.spritesheet('rocket', 'assets/rocket.png', { frameWidth: 272, frameHeight: 500 });
+
             this.load.image('startButton', 'assets/button.png');
             this.load.image('star', 'assets/star.png');
         }
 
         function create() {
+            
             player = this.physics.add.sprite(centerX + radius, centerY, 'rocket');
             player.setScale(0.2);
             player.setCollideWorldBounds(true);
@@ -69,6 +72,31 @@
                 star.setScale(0.5); // Scale down the stars if needed
                 star.body.allowGravity = false; // Initially, stars should not be affected by gravity
             }
+
+            this.anims.create({
+                key: 'turnRight',
+                frames: this.anims.generateFrameNumbers('rocket', { start: 1, end: 2 }),
+                frameRate: 10,
+            });
+
+            this.anims.create({
+                key: 'turnLeft',
+                frames: this.anims.generateFrameNumbers('rocket', { start: 3, end: 4 }),
+                frameRate: 10,
+            });
+
+            this.anims.create({
+                key: 'forward',
+                frames: [{ key: 'rocket', frame: 5 }],
+                frameRate: 20
+            });
+
+            this.anims.create({
+                key: 'idleRocket',
+                frames: [{ key: 'rocket', frame: 6 }],
+                frameRate: 20
+            });
+
         }
 
         function update() {
@@ -103,21 +131,35 @@
                         }
                     });
 
-                    // controls for the player
+                    // contros for the player
                     if (cursors.left.isDown) {
                         player.setVelocityX(-200);
+                        if (!turningAnimationPlayed) {
+                            player.anims.play('turnLeft', true);
+                            turningAnimationPlayed = true;
+                        }
                     } else if (cursors.right.isDown) {
                         player.setVelocityX(200);
+                        if (!turningAnimationPlayed) {
+                            player.anims.play('turnRight', true);
+                            turningAnimationPlayed = true;
+                        }
                     } else {
                         player.setVelocityX(0);
+                        turningAnimationPlayed = false;
+                        player.anims.play('idle', true);
                     }
                     
                     if (cursors.up.isDown) {
-                        player.setVelocityY(-200);
+                        player.setVelocityY(-350);
+                        player.anims.play('forward', true);
                     } else if (cursors.down.isDown) {
-                        player.setVelocityY(200);
+                        player.setVelocityY(350);
                     } else {
                         player.setVelocityY(0);
+                        if (!turningAnimationPlayed){
+                            player.anims.play('idleRocket', true);
+                        }
                     }
                 }
             }
@@ -126,7 +168,7 @@
         }
 
         function onButtonClicked() {
-            console.log('Button clicked!');
+            player.anims.play('forward', true);
             gameStarted = true;
         }
     </script>
