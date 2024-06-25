@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="./js/phaser.min.js"></script>
+    <title>Game</title>
+</head>
+<body>
+    <script>
+        var config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 300 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        var game = new Phaser.Game(config);
+        var gameStarted = false;
+        var liftOff = false;
+        var button;
+        var player;
+        var stars;
+        var angle = 0;
+        var radius = 200;
+        var centerX = 400;
+        var centerY = 300;
+        var speed = -0.03; // Speed of the movement
+        var gameSpeed = 10;
+
+        function preload() {
+            this.load.image('rocket', 'assets/rocket.png');
+            this.load.image('startButton', 'assets/button.png');
+            this.load.image('star', 'assets/star.png');
+        }
+
+        function create() {
+            player = this.physics.add.sprite(centerX + radius, centerY, 'rocket');
+            player.setScale(0.2);
+            player.setCollideWorldBounds(true);
+
+            cursors = this.input.keyboard.createCursorKeys();
+
+            score = 0;
+            scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#FFF' });
+
+            button = this.add.sprite(400, 300, 'startButton');
+            button.setInteractive({ useHandCursor: true });
+            button.on('pointerdown', onButtonClicked);
+
+            // Create a group for stars at random positions
+            stars = this.physics.add.group();
+
+            for (var i = 0; i < 20; i++) {
+                var x = Phaser.Math.Between(0, config.width);
+                var y = Phaser.Math.Between(0, config.height);
+                var star = stars.create(x, y, 'star');
+                star.setScale(0.5); // Scale down the stars if needed
+                star.body.allowGravity = false; // Initially, stars should not be affected by gravity
+            }
+        }
+
+        function update() {
+            if (!gameStarted || !liftOff) {
+                angle += speed;
+                player.rotation = angle;
+                player.x = centerX + radius * Math.cos(angle);
+                player.y = centerY + radius * Math.sin(angle);
+            }
+
+            if (gameStarted) {
+                if (parseInt(player.x) < 600 && parseInt(player.x) > 598 && liftOff == false) {
+                    // debug only
+                    // this.add.circle(player.x, player.y, 5, 0xFFFFFF, 1);
+                    player.rotation = 0;
+                    liftOff = true;
+                }
+
+                if (liftOff) {
+                    button.y += gameSpeed;
+
+                    // Enable gravity for stars
+                    stars.children.iterate(function (child) {
+                        child.body.allowGravity = true;
+
+                        // If star leaves screen from bottom, reset it to the top at a random position
+                        if (child.y > config.height) {
+                            child.y = 0;
+                            child.setVelocityY(Phaser.Math.Between(50, 100));
+                            child.x = Phaser.Math.Between(0, config.width);
+                            child.body.allowGravity = false;
+                        }
+                    });
+
+                    // controls for the player
+                    if (cursors.left.isDown) {
+                        player.setVelocityX(-200);
+                    } else if (cursors.right.isDown) {
+                        player.setVelocityX(200);
+                    } else {
+                        player.setVelocityX(0);
+                    }
+                    
+                    if (cursors.up.isDown) {
+                        player.setVelocityY(-200);
+                    } else if (cursors.down.isDown) {
+                        player.setVelocityY(200);
+                    } else {
+                        player.setVelocityY(0);
+                    }
+                }
+            }
+
+            button.angle += 1;
+        }
+
+        function onButtonClicked() {
+            console.log('Button clicked!');
+            gameStarted = true;
+        }
+    </script>
+</body>
+</html>
