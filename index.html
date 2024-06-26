@@ -39,7 +39,10 @@
         var player;
         var stars;
         var angle = 0;
-        var radius;
+        var orbitRadius;
+        var moonOrbitRadiusMin;
+        var moonOrbitRadiusMax;
+        var moonTravelBack = false;
         var centerX = gameWidth / 2;
         var centerY = gameHeight / 2;
         var speed = -0.002; // Speed of the movement
@@ -53,10 +56,13 @@
             
             this.load.image('titleText', 'assets/raketka.png');
             this.load.image('subtitleText', 'assets/subtitle.png');
+
             this.load.image('number1', 'assets/number1.png');
             this.load.image('number2', 'assets/number2.png');
             this.load.image('number3', 'assets/number3.png');
             this.load.image('goSign', 'assets/gosign.png');
+
+            this.load.image('moon', 'assets/moon.png');
 
             this.load.image('startButton', 'assets/planet.png');
             this.load.image('atmosphere', 'assets/atmosphere.png');
@@ -65,7 +71,6 @@
 
         function create() {
             // create coundown sprites and add them to array
-            
             countdownSprites.push(this.add.sprite(centerX, centerY, 'goSign'));
             countdownSprites.push(this.add.sprite(centerX, centerY, 'number1'));
             countdownSprites.push(this.add.sprite(centerX, centerY, 'number2'));        
@@ -123,14 +128,22 @@
             atmosphere.alpha = 0.15;
             atmosphere.setDepth(6);
 
+            // create moon
+            moon = this.add.sprite(centerX, centerY, 'moon');
+            moon.setScale(0.1);
+
+            moonOrbitRadiusMin = centerX - 300;
+            moonOrbitRadiusMax = centerX + 300;
+            moon.x = moonOrbitRadiusMin
+
             // create planet button
             button = this.add.sprite(centerX, centerY, 'startButton');
             button.setScale(0.33);
             button.setInteractive({ useHandCursor: true });
             title.setDepth(7);
 
-            // set the radius of the circle
-            radius = button.width * 0.25 / 2 + 100;
+            // set the orbitRadius of the circle
+            orbitRadius = button.width * 0.25 / 2 + 100;
 
             button.on('pointerdown', function () {
                 gameStarted = true;
@@ -192,6 +205,8 @@
 
                 atmosphere.y = centerY;
                 atmosphere.x = centerX;
+
+                moon.y = centerY
 
                 asteroids.clear(true, true);
 
@@ -257,8 +272,23 @@
                 angle += speed;
                 player.rotation = angle;
 
-                player.x = centerX + radius * Math.cos(angle);
-                player.y = centerY + radius * Math.sin(angle);
+                player.x = centerX + orbitRadius * Math.cos(angle);
+                player.y = centerY + orbitRadius * Math.sin(angle);
+
+                if (!moonTravelBack){
+                    moon.x = moon.x + 3;
+                    if (moon.x >= moonOrbitRadiusMax){
+                        moonTravelBack = true;
+                        moon.setDepth(8);
+                        
+                    }
+                } else {
+                    moon.x = moon.x - 3;
+                    if (moon.x <= moonOrbitRadiusMin){
+                        moonTravelBack = false;
+                        moon.setDepth(6);
+                    }
+                }
 
                 if (!gameStarted) {
                     player.anims.play('aroundPlanet', true);
@@ -268,8 +298,8 @@
             if (gameStarted) {
                 speed = -0.04;
 
-                if (parseInt(player.x) >= parseInt(centerX + radius) &&
-                    parseInt(player.x) <= parseInt(centerX + radius * 2) &&
+                if (parseInt(player.x) >= parseInt(centerX + orbitRadius) &&
+                    parseInt(player.x) <= parseInt(centerX + orbitRadius * 2) &&
                     parseInt(player.y) >= parseInt(centerY - 8) &&
                     parseInt(player.y) <= parseInt(centerY) &&
                     liftOff == false) {
@@ -308,6 +338,7 @@
                     button.y += 10;
                     countdownSprites[0].y += 10;
                     atmosphere.y += 10;
+                    moon.y += 10;
 
                     // Enable gravity for stars
                     stars.children.iterate(function (child) {
@@ -392,6 +423,7 @@
             }
 
             button.angle += buttonRotation;
+            button.setDepth(7);
         }
     </script>
 </body>
