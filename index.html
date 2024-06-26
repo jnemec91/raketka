@@ -8,10 +8,13 @@
 </head>
 <body>
     <script>
+        var gameWidth = window.innerWidth - window.innerWidth * 0.03;
+        var gameHeight = window.innerHeight - window.innerHeight * 0.03;
+
         var config = {
             type: Phaser.AUTO,
-            width: 800,
-            height: 600,
+            width: gameWidth,
+            height: gameHeight,
             physics: {
                 default: 'arcade',
                 arcade: {
@@ -31,14 +34,14 @@
         var liftOff = false;
         var turningAnimationPlayed = false;
         var button;
-        var buttonRotation = 0.5;
+        var buttonRotation = 0.1;
         var player;
         var stars;
         var angle = 0;
-        var radius = 200;
-        var centerX = 400;
-        var centerY = 300;
-        var speed = -0.03; // Speed of the movement
+        var radius;
+        var centerX = gameWidth / 2;
+        var centerY = gameHeight / 2;
+        var speed = -0.001; // Speed of the movement
 
         function preload() {
             this.load.spritesheet('rocket', 'assets/rocket.png', { frameWidth: 272, frameHeight: 500 });
@@ -64,7 +67,9 @@
             // Create the stars
             createStars();
                         
-            player = this.physics.add.sprite(centerX + radius, centerY, 'rocket');
+            player = this.physics.add.sprite(centerX, centerY, 'rocket');
+            player.setVelocity(0,0);
+            player.body.allowGravity = false;
             player.setScale(0.2);
             player.setCollideWorldBounds(true);
 
@@ -75,9 +80,13 @@
 
 
             // create planet button
-            button = this.add.sprite(400, 300, 'startButton');
-            button.setScale(0.25);
+            button = this.add.sprite(centerX, centerY, 'startButton');
+            button.setScale(0.33);
             button.setInteractive({ useHandCursor: true });
+            button.alpha = 0.7;
+
+            // set the radius of the circle
+            radius = button.width*0.25/2 + 100;
 
             button.on('pointerdown', function (){
             player.anims.play('forward', true);
@@ -85,13 +94,15 @@
             });
 
             button.on('pointerover', function () {
-            button.setScale(0.28); // Example: Scale up when hovered
+            button.setScale(0.37);
             buttonRotation = 0.25;
+            button.alpha = 1;
             });
 
             button.on('pointerout', function () {
-                button.setScale(0.25); // Example: Return to normal scale when not hovered
-                buttonRotation = 0.5;
+                button.setScale(0.33);
+                buttonRotation = 0.1;
+                button.alpha = 0.7
             });
 
             // create group for asteroids
@@ -99,16 +110,23 @@
 
             // add collider between player and asteroids
             this.physics.add.collider(player, asteroids, function (player, asteroid) {
-                player.setVelocity(0, 0);
+                speed = -0.001;
+                // player.setVelocity(0, 0);
                 player.anims.play('idleRocket', true);
                 gameStarted = false;
                 liftOff = false;
                 turningAnimationPlayed = false;
-                player.x = centerX + radius;
+
+                player.x = centerX;
                 player.y = centerY;
-                player.rotation = 0;
-                button.y = 300;
+                player.setVelocity(0,0);
+                player.body.allowGravity = false;
+                player.setOrigin(0.5,0.5);
+
+                button.y = centerY;
+                button.x = centerX;
                 button.angle = 0;
+
                 asteroids.clear(true, true);
                 
                 // Reset the stars
@@ -156,14 +174,35 @@
             if (!gameStarted || !liftOff) {
                 angle += speed;
                 player.rotation = angle;
+                
                 player.x = centerX + radius * Math.cos(angle);
                 player.y = centerY + radius * Math.sin(angle);
+
+                // player.setOrigin(0.5, 0.5);
+                // debug only
+                // this.add.circle(player.originX, player.originY, 1, 0xFF0000, 1);
             }
 
             if (gameStarted) {
-                if (parseInt(player.x) < 600 && parseInt(player.x) > 598 && liftOff == false) {
+                speed = -0.04;
+
+                // debug drawings
+                // this.add.circle(centerX, centerY, 10, 0xFFFF00, 1)
+                // line = this.add.line(0, 0, centerX+radius, centerY, centerX+radius*2, centerY, 0xFFFFFF);
+                // line_y = this.add.line(0, 0, centerX+radius, centerY, centerX+radius, centerY+100, 0xFFFFFF);
+
+                // this.add.circle(centerX+ radius, centerY, 5, 0xFF0000, 1);
+                // this.add.circle(centerX+ radius, centerY+20, 5, 0xFFFFFF, 1);
+                // this.add.circle(centerX+ radius, centerY-20, 5, 0xFFFFFF, 1);
+
+                if (parseInt(player.x) >= parseInt(centerX + radius) &&
+                    parseInt(player.x) <= parseInt(centerX + radius * 2) &&
+                    parseInt(player.y) >= parseInt(centerY - 10) &&
+                    parseInt(player.y) <= parseInt(centerY) &&
+                    liftOff == false) {
+ 
                     // debug only
-                    // this.add.circle(player.x, player.y, 5, 0xFFFFFF, 1);
+                    // this.add.circle(player.x, player.y, 1, 0xFFFFFF, 1);
                     player.rotation = 0;
                     liftOff = true;
                 }
