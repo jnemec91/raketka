@@ -116,7 +116,6 @@ function create() {
     createStars();
 
     // create player
-    // player = this.physics.add.sprite(centerX, centerY, 'rocket');
     player = new Player(this, centerX, centerY, 'rocket', 0.2, -0.002, 3);
 
     cursors = this.input.keyboard.createCursorKeys();
@@ -129,11 +128,13 @@ function create() {
     title = this.add.sprite(centerX, centerY, 'titleText');
     title.setScale(0.55);
     title.setDepth(9);
+    title.postFX.addGlow(0xFFFFFF, 0.5);
 
     // create subtitle text
     subtitle = this.add.sprite(centerX, centerY, 'subtitleText');
     subtitle.setScale(0.45);
     subtitle.setDepth(9);
+    subtitle.postFX.addGlow(0xFFFFFF, 0.2);
 
     // create atmosphere
     atmosphere = this.add.sprite(centerX, centerY, 'atmosphere');
@@ -150,7 +151,8 @@ function create() {
     planet = this.add.sprite(centerX, centerY, 'startButton');
     planet.setScale(0.33);
     planet.setInteractive({ useHandCursor: true });
-    title.setDepth(7);
+
+    
 
     // set the orbitRadius of the circle
     orbitRadius = planet.width * 0.25 / 2 + 100;
@@ -167,7 +169,7 @@ function create() {
 
     planet.on('pointerover', function () {
         atmosphere.setScale(1.25);
-
+        
         planet.setScale(0.37);
         planetRotation = 0.25;
     });
@@ -184,48 +186,57 @@ function create() {
 
     // add collider between player and asteroids
     this.physics.add.collider(player, asteroids, function (player, asteroid) {
-        player.speed = -0.001;
-        player.anims.play('idleRocket', true);
+        console.log('hit');
+        console.log(player.health);
+        if (player.health > 0) {
+            player.hurt();
+            asteroid.destroy();
+        }
+        else{
+            player.speed = -0.001;
+            player.anims.play('idleRocket', true);
 
-        gameStarted = false;
-        liftOff = false;
-        turningAnimationPlayed = false;
+            gameStarted = false;
+            liftOff = false;
+            turningAnimationPlayed = false;
 
-        liftOffCounter = 3;
+            liftOffCounter = 3;
 
-        countdownSprites[0].y = centerY;
+            countdownSprites[0].y = centerY;
 
-        for (let i=0; i < countdownSprites.length; i++){
-                    countdownSprites[i].visible = false;
-                }
+            for (let i=0; i < countdownSprites.length; i++){
+                        countdownSprites[i].visible = false;
+                    }
 
-        player.x = centerX;
-        player.y = centerY;
-        player.setVelocity(0, 0);
-        player.body.allowGravity = false;
-        player.setOrigin(0.5, 0.5);
+            player.x = centerX;
+            player.y = centerY;
+            player.setVelocity(0, 0);
+            player.body.allowGravity = false;
+            player.setOrigin(0.5, 0.5);
+            player.health = 3;
 
-        planet.y = centerY;
-        planet.x = centerX;
-        planet.angle = 0;
+            planet.y = centerY;
+            planet.x = centerX;
+            planet.angle = 0;
 
-        atmosphere.y = centerY;
-        atmosphere.x = centerX;
+            atmosphere.y = centerY;
+            atmosphere.x = centerX;
 
-        moon.y = centerY
+            moon.y = centerY
 
-        asteroids.clear(true, true);
+            asteroids.clear(true, true);
 
-        title.visible = true;
-        subtitle.visible = true;
+            title.visible = true;
+            subtitle.visible = true;
 
-        title.alpha = 1;
-        subtitle.alpha = 1;
+            title.alpha = 1;
+            subtitle.alpha = 1;
 
-        // Reset the stars
-        stars.clear(true, true);
-        createStars();
-
+            // Reset the stars
+            stars.clear(true, true);
+            createStars();
+                
+        }
     });
 
 
@@ -243,6 +254,8 @@ function update() {
     if (!gameStarted || !liftOff) {
         playerAngle += player.speed;
         player.rotation = playerAngle;
+
+        // console.log(player.getHealth());
 
         moonAngle += moonSpeed;
         moon.rotation = moonAngle / 3;
@@ -291,7 +304,7 @@ function update() {
 
         if (parseInt(player.x) >= parseInt(centerX + orbitRadius) &&
             parseInt(player.x) <= parseInt(centerX + orbitRadius * 2) &&
-            parseInt(player.y) >= parseInt(centerY - 10) &&
+            parseInt(player.y) >= parseInt(centerY - 20) &&
             parseInt(player.y) <= parseInt(centerY) &&
             liftOff == false) {
 
@@ -352,6 +365,7 @@ function update() {
                 asteroid.anims.play('asteroid', true);
             }
 
+            // start creating enemies
             if (Phaser.Math.Between(0, 100) < 1) {
                 let enemy = new Enemy(this, Phaser.Math.Between(0, config.width), 0, 'enemy', 0.1, 0.1, 0, 1);
                 enemy.setScale(0.1);

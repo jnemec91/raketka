@@ -1,7 +1,7 @@
 "use strict";
 
 export default class Player extends Phaser.Physics.Arcade.Sprite {
-    constructor(scene, x, y, texture, scale, speed, angle, health) {
+    constructor(scene, x, y, texture, scale, speed, health) {
         super(scene, x, y, texture);
 
         // Add this sprite to the scene
@@ -11,7 +11,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // set default parameters for player
         this.setScale(scale);
         this.setVelocity(0, 0);
-        this.setDepth(10);     
+        this.setDepth(10);
+
 
         // Set up physics properties
         this.setCollideWorldBounds(true);
@@ -20,10 +21,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         // Set up animations if any
         this.createAnimations(scene);
 
-        // set health
+        // set health, speed,
         this.health = health;
         this.speed = speed;
-        this.angle = angle;
         
         // state variables
         this.turningAnimationPlayed = false;
@@ -60,6 +60,12 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
             frames: this.anims.generateFrameNumbers('rocket', { start: 6, end: 11 }),
             frameRate: 1,
         });
+    }
+
+    hurt(){
+        this.health -= 1;
+        // debug
+        console.log("Player health: " + this.health);
     }
 
 }
