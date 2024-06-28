@@ -1,6 +1,7 @@
 "use strict";
 
-import MovingEnemy from "./enemy.js";
+import Player from "./player.js";
+import Enemy from "./enemy.js";
 
 var gameWidth = window.innerWidth - window.innerWidth * 0.03;
 var gameHeight = window.innerHeight - window.innerHeight * 0.03;
@@ -31,26 +32,36 @@ var title;
 var subtitle;
 var gameStarted = false;
 var liftOff = false;
-var turningAnimationPlayed = false;
+
 var liftOffCounter = 3;
-var button;
+var planet;
 var atmosphere;
-var buttonRotation = 0.1;
-var player;
+var planetRotation = 0.1;
 var stars;
-var angle = 0;
-var orbitRadius;
 var asteroids;
+
+var player;
+var playerAngle = 0;
+var orbitRadius;
+var turningAnimationPlayed = false;
+
+
 var moon;
-var moonOrbitRadiusMin;
-var moonOrbitRadiusMax;
+var moonOrbitRadius = 400;
+var moonCenterOffset = 180;
+var moonAngle = 0;
 var moonTravelBack = false;
-var centerX = gameWidth / 2;
-var centerY = gameHeight / 2;
-var speed = -0.002; // Speed of the movement
+var moonScale = 0.1;    // Initial scale of the moon
+var moonScaleChange = 0.0003; // best result with 0.0005
+var moonSpeed = 0.008;  // best result with 0.01
+
+// var speed = -0.002; // Speed of the movement
 var linesGraphics;
 var linesArray = [];
 var countdownSprites = [];
+
+var centerX = gameWidth / 2;
+var centerY = gameHeight / 2;
 
 function preload() {
     this.load.spritesheet('rocket', 'assets/rocket.png', { frameWidth: 272, frameHeight: 500 });
@@ -105,12 +116,8 @@ function create() {
     createStars();
 
     // create player
-    player = this.physics.add.sprite(centerX, centerY, 'rocket');
-    player.setVelocity(0, 0);
-    player.body.allowGravity = false;
-    player.setScale(0.2);
-    player.setCollideWorldBounds(true);
-    player.setDepth(10);
+    // player = this.physics.add.sprite(centerX, centerY, 'rocket');
+    player = new Player(this, centerX, centerY, 'rocket', 0.2, -0.002, 3);
 
     cursors = this.input.keyboard.createCursorKeys();
 
@@ -136,47 +143,40 @@ function create() {
 
     // create moon
     moon = this.add.sprite(centerX, centerY, 'moon');
-    moon.setScale(0.1);
+    moon.setScale(moonScale);
+    moon.x = moonOrbitRadius;
 
-    moonOrbitRadiusMin = centerX - 300;
-    moonOrbitRadiusMax = centerX + 300;
-    moon.x = moonOrbitRadiusMin
-
-    // create planet button
-    button = this.add.sprite(centerX, centerY, 'startButton');
-    button.setScale(0.33);
-    button.setInteractive({ useHandCursor: true });
+    // create planet planet
+    planet = this.add.sprite(centerX, centerY, 'startButton');
+    planet.setScale(0.33);
+    planet.setInteractive({ useHandCursor: true });
     title.setDepth(7);
 
     // set the orbitRadius of the circle
-    orbitRadius = button.width * 0.25 / 2 + 100;
+    orbitRadius = planet.width * 0.25 / 2 + 100;
 
-    button.on('pointerdown', function () {
+    planet.on('pointerdown', function () {
         gameStarted = true;
 
-        let anim = player.anims.get('aroundPlanet');
-        if (anim) {
-            anim.stop();
-        }
-
+        player.anims.stop();
         player.anims.play('forward', true);
 
         countdownSprites[liftOffCounter].visible = true;
         liftOffCounter--;
     });
 
-    button.on('pointerover', function () {
+    planet.on('pointerover', function () {
         atmosphere.setScale(1.25);
 
-        button.setScale(0.37);
-        buttonRotation = 0.25;
+        planet.setScale(0.37);
+        planetRotation = 0.25;
     });
 
-    button.on('pointerout', function () {
+    planet.on('pointerout', function () {
         atmosphere.setScale(1.1);
 
-        button.setScale(0.33);
-        buttonRotation = 0.1;
+        planet.setScale(0.33);
+        planetRotation = 0.1;
     });
 
     // create group for asteroids
@@ -184,7 +184,7 @@ function create() {
 
     // add collider between player and asteroids
     this.physics.add.collider(player, asteroids, function (player, asteroid) {
-        speed = -0.001;
+        player.speed = -0.001;
         player.anims.play('idleRocket', true);
 
         gameStarted = false;
@@ -205,9 +205,9 @@ function create() {
         player.body.allowGravity = false;
         player.setOrigin(0.5, 0.5);
 
-        button.y = centerY;
-        button.x = centerX;
-        button.angle = 0;
+        planet.y = centerY;
+        planet.x = centerX;
+        planet.angle = 0;
 
         atmosphere.y = centerY;
         atmosphere.x = centerX;
@@ -228,40 +228,8 @@ function create() {
 
     });
 
-    // create animations for player
-
-    this.anims.create({
-        key: 'turnRight',
-        frames: this.anims.generateFrameNumbers('rocket', { start: 1, end: 2 }),
-        frameRate: 10,
-    });
-
-    this.anims.create({
-        key: 'turnLeft',
-        frames: this.anims.generateFrameNumbers('rocket', { start: 3, end: 4 }),
-        frameRate: 10,
-    });
-
-    this.anims.create({
-        key: 'forward',
-        frames: [{ key: 'rocket', frame: 5 }],
-        frameRate: 20
-    });
-
-    this.anims.create({
-        key: 'idleRocket',
-        frames: [{ key: 'rocket', frame: 6 }],
-        frameRate: 20
-    });
-
-    this.anims.create({
-        key: 'aroundPlanet',
-        frames: this.anims.generateFrameNumbers('rocket', { start: 6, end: 11 }),
-        frameRate: 1,
-    });
 
     // create animations for asteroids
-
     this.anims.create({
         key: 'asteroid',
         frames: this.anims.generateFrameNumbers('asteroid', { start: 0, end: 3 }),
@@ -269,31 +237,48 @@ function create() {
         repeat: -1
     });
 
-    // Create a graphics object for drawing lines
-    linesGraphics = this.add.graphics();
 }
 
 function update() {
     if (!gameStarted || !liftOff) {
-        angle += speed;
-        player.rotation = angle;
+        playerAngle += player.speed;
+        player.rotation = playerAngle;
 
-        player.x = centerX + orbitRadius * Math.cos(angle);
-        player.y = centerY + orbitRadius * Math.sin(angle);
+        moonAngle += moonSpeed;
+        moon.rotation = moonAngle / 3;
+        
+        if (moonTravelBack){
+            moonCenterOffset += 1;
+            moon.setDepth(8);
+        }
+        else{
+            moonCenterOffset -= 1;
+            moon.setDepth(5);
+        }
 
-        if (!moonTravelBack){
-            moon.x = moon.x + 3;
-            if (moon.x >= moonOrbitRadiusMax){
-                moonTravelBack = true;
-                moon.setDepth(8);
-                
-            }
-        } else {
-            moon.x = moon.x - 3;
-            if (moon.x <= moonOrbitRadiusMin){
-                moonTravelBack = false;
-                moon.setDepth(6);
-            }
+        if (moon.x < centerX){
+            moonScale = moonScale + moonScaleChange;
+            moon.setScale(moonScale);
+        }
+        else {
+            moonScale = moonScale - moonScaleChange;
+            moon.setScale(moonScale);
+        }
+        
+
+        player.x = centerX + orbitRadius * Math.cos(playerAngle);
+        player.y = centerY + orbitRadius * Math.sin(playerAngle);
+
+        moon.x = centerX + moonOrbitRadius * Math.cos(moonAngle);
+        moon.y = centerY - moonCenterOffset * Math.sin(moonAngle);
+
+        if ((moon.x).toFixed(2) >= (centerX - moonOrbitRadius - 0.1).toFixed(2) && (moon.x).toFixed(2) <= (centerX - moonOrbitRadius + 0.1).toFixed(2)){
+            // console.log('min');
+            moonTravelBack = true;
+        }
+        else if ((moon.x).toFixed(2) >= (centerX + moonOrbitRadius - 0.1).toFixed(2) && (moon.x).toFixed(2) <= (centerX + moonOrbitRadius + 0.1).toFixed(2)){
+            // console.log('max');
+            moonTravelBack = false;
         }
 
         if (!gameStarted) {
@@ -302,11 +287,11 @@ function update() {
     }
 
     if (gameStarted) {
-        speed = -0.04;
+        player.speed = -0.04;
 
         if (parseInt(player.x) >= parseInt(centerX + orbitRadius) &&
             parseInt(player.x) <= parseInt(centerX + orbitRadius * 2) &&
-            parseInt(player.y) >= parseInt(centerY - 8) &&
+            parseInt(player.y) >= parseInt(centerY - 10) &&
             parseInt(player.y) <= parseInt(centerY) &&
             liftOff == false) {
 
@@ -341,7 +326,7 @@ function update() {
         }
 
         if (liftOff) {
-            button.y += 10;
+            planet.y += 10;
             countdownSprites[0].y += 10;
             atmosphere.y += 10;
             moon.y += 10;
@@ -365,6 +350,12 @@ function update() {
                 asteroid.setScale(0.1);
                 asteroid.setVelocityY(Phaser.Math.Between(50, 100));
                 asteroid.anims.play('asteroid', true);
+            }
+
+            if (Phaser.Math.Between(0, 100) < 1) {
+                let enemy = new Enemy(this, Phaser.Math.Between(0, config.width), 0, 'enemy', 0.1, 0.1, 0, 1);
+                enemy.setScale(0.1);
+                enemy.rotation = 3;
             }
 
             // controls for the player
@@ -397,37 +388,9 @@ function update() {
                     player.anims.play('idleRocket', true);
                 }
             }
-
-            // // Add lines behind the rocket
-            // var tailLength = 300; // Length in pixels to keep the tail
-            // var lineSpacing = 10; // Space between the lines
-
-            // if (linesArray.length === 0) {
-            //     for (var i = 0; i < 3; i++) {
-            //         linesArray.push({ x: player.x, y: player.y });
-            //     }
-            // } else {
-            //     linesArray.push({ x: player.x, y: window.innerHeight-player.y +300 });
-            //     if (linesArray.length > tailLength / lineSpacing) {
-            //         linesArray.shift();
-            //     }
-            // }
-
-            // // Draw lines
-            // linesGraphics.clear();
-            // linesGraphics.lineStyle(2, 0xffffff, 1);
-            // for (var i = 0; i < linesArray.length; i++) {
-            //     var point = linesArray[i];
-            //     var alpha = 1 - (i / linesArray.length);
-            //     linesGraphics.lineStyle(2, 0xffffff, alpha);
-            //     linesGraphics.beginPath();
-            //     linesGraphics.moveTo(player.x, player.y);
-            //     linesGraphics.lineTo(point.x, point.y);
-            //     linesGraphics.strokePath();
-            // }
         }
     }
 
-    button.angle += buttonRotation;
-    button.setDepth(7);
+    planet.angle += planetRotation;
+    planet.setDepth(7);
 }
