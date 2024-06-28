@@ -1,17 +1,11 @@
-export default class MovingEnemy {
-  constructor(x, y, speed) {
-    this.x = x;
-    this.y = y;
-    this.speed = speed;
-  }
+"use strict";
 
-  add() {
-    this.sprite = scene.physics.add.sprite(this.x, this.y, 'enemy');
-  }
+export default class Enemy extends Phaser.Physics.Arcade.Sprite {
+  constructor(scene, x,y, texture, scale, speed, angle, health){
+    super(scene, x, y, texture);
 
-  move() {
-    this.x += this.speed;
-    this.y += this.speed;
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    
   }
-
 }
