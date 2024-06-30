@@ -22,7 +22,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         this.createAnimations(scene);
 
         // set health, speed, weapon
-        this.health = health;
+        this.health = health+100;
         this.speed = speed;
         this.weapon = null;
         
@@ -63,8 +63,9 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
-    hurt(){
+    takeDamage(){
         this.health -= 1;
+
         // debug
         console.log("Player health: " + this.health);
     }
@@ -74,7 +75,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     fireWeapon(){
-        this.weapon.fire();
+        this.weapon.fire(this.x, 0);
     }
 
 }
