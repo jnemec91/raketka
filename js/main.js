@@ -2,6 +2,7 @@
 
 import Player from "./player.js";
 import Enemy from "./enemy.js";
+import {Weapon, Projectile} from "./weapon.js";
 
 var gameWidth = window.innerWidth - window.innerWidth * 0.03;
 var gameHeight = window.innerHeight - window.innerHeight * 0.03;
@@ -42,6 +43,9 @@ var asteroids;
 
 var player;
 var playerAngle = 0;
+var playerProjectile;
+var playerWeapon;
+
 var orbitRadius;
 var turningAnimationPlayed = false;
 
@@ -117,6 +121,9 @@ function create() {
 
     // create player
     player = new Player(this, centerX, centerY, 'rocket', 0.2, -0.002, 3);
+    playerWeapon = new Weapon(centerX, centerY, this, 'star', 'star', 1, -500, false, player.x, player.y, 'star');
+    player.setWeapon(playerWeapon);
+
 
     cursors = this.input.keyboard.createCursorKeys();
 
@@ -251,6 +258,7 @@ function create() {
 }
 
 function update() {
+
     if (!gameStarted || !liftOff) {
         playerAngle += player.speed;
         player.rotation = playerAngle;
@@ -401,6 +409,11 @@ function update() {
                 if (!turningAnimationPlayed) {
                     player.anims.play('idleRocket', true);
                 }
+            }
+
+            if (cursors.space.isDown) {
+                player.weapon.setShooterPosition(player.x, player.y - 20);
+                player.fireWeapon();
             }
         }
     }
