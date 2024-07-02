@@ -19,14 +19,14 @@ export class Weapon{
         // add group for projectiles
         this.projectiles = this.scene.physics.add.group();
 
-        // add colider between projectiles and 
+        // add colider between projectiles and player
         this.scene.physics.add.collider(this.scene.player, this.projectiles, function (player, projectile) {
             console.log('hit');
             console.log(player.health);
             // only take damage if projectile is not from player.weapon.projectiles
             if (!player.weapon.projectiles.contains(projectile)){
 
-                if (player.health > 0) {
+                if (player.health >= 0) {
                     player.takeDamage();
                     projectile.destroy();
                 }

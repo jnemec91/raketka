@@ -2,6 +2,7 @@
 
 import Player from "./player.js";
 import Enemy from "./enemy.js";
+import WeaponCase from "./weaponCase.js";
 import {Weapon, Projectile} from "./weapon.js";
 
 var gameWidth = window.innerWidth - window.innerWidth * 0.03;
@@ -51,10 +52,12 @@ var player;
 var playerAngle = 0;
 var playerProjectile;
 var playerWeapon;
+var lives;
+
+var weaponCase;
 
 var orbitRadius;
 var turningAnimationPlayed = false;
-
 
 var moon;
 var moonOrbitRadius = 400;
@@ -79,6 +82,7 @@ function preload() {
 
     this.load.image('enemy', 'assets/enemy.png');
     this.load.image('enemyTwo', 'assets/enemy_two.png');
+    this.load.image('enemyThree', 'assets/enemy_three.png');
     
     this.load.image('titleText', 'assets/raketka.png');
     this.load.image('subtitleText', 'assets/subtitle.png');
@@ -96,6 +100,11 @@ function preload() {
 
     this.load.image('pinkProjectile', 'assets/projectile_pink.png');
     this.load.image('greenProjectile', 'assets/projectile_green.png');
+    this.load.image('greyProjectile', 'assets/projectile_grey.png');
+    this.load.image('projectileRockets', 'assets/projectile_rockets.png');
+    
+
+    this.load.image('weaponBox', 'assets/box.png');
 }
 
 function create() {
@@ -134,9 +143,10 @@ function create() {
 
 
     // create player
-    player = new Player(this, centerX, centerY, 'rocket', 0.2, -0.002, 3);
+    player = new Player(this, centerX, centerY, 'rocket', 0.2, -0.002, 5);
     this.player = player;
-    playerWeapon = new Weapon(centerX, centerY, this, 'greenProjectile', 'greenProjectile', 1, 500, false, player.x, player.y, 'greenProjectile', 20);
+    
+    playerWeapon = new Weapon(centerX, centerY, this, 'greyProjectile', 'greyProjectile', 1, 500, false, player.x, player.y, 'greyProjectile', 50);
     player.setWeapon(playerWeapon);
 
 
@@ -183,7 +193,7 @@ function create() {
     // add event listeners for planet
     planet.on('pointerdown', function () {
         gameStarted = true;
-
+        planet.disableInteractive();
         player.anims.stop();
         player.anims.play('forward', true);
 
@@ -200,10 +210,21 @@ function create() {
 
     planet.on('pointerout', function () {
         atmosphere.setScale(1.1);
-
         planet.setScale(0.33);
         planetRotation = 0.1;
     });
+
+    // create group for lives
+    lives = this.physics.add.group();
+
+    // add rocket sprites to the lives
+    for (let i=0; i < player.health; i++){
+        let live = lives.create(gameWidth - 50 - 50*i, 50, 'rocket');
+        live.setScale(0.1);
+        live.setTint(0xFF0000);
+        live.body.allowGravity = false;
+        console.log(lives);
+    }
 
     // create group for asteroids
     asteroids = this.physics.add.group();
@@ -244,12 +265,16 @@ function create() {
     this.physics.add.collider(playerWeapon.projectiles, enemies, function (projectile, enemy) {
         enemy.health -= projectile.damage;
         if (enemy.health <= 0) {
+            weaponCase = new WeaponCase(enemy.scene, enemy.x, enemy.y, 'weaponBox', enemy.weapon)
+            weaponCase.allowGravity = true;
             enemy.destroy();
             score += 20;
             scoreText.setText('Score: ' + score);
         }
         projectile.destroy();
     });
+    
+    
 
     // delete the projectile if it leaves the screen
     // this.physics.world.on('worldbounds', function (body) {
@@ -285,11 +310,12 @@ function create() {
         player.setVelocity(0, 0);
         player.body.allowGravity = false;
         player.setOrigin(0.5, 0.5);
-        player.health = 3;
+        player.health = 5;
 
         planet.y = centerY;
         planet.x = centerX;
         planet.angle = 0;
+        planet.setInteractive({ useHandCursor: true });
 
         atmosphere.y = centerY;
         atmosphere.x = centerX;
@@ -318,6 +344,11 @@ function create() {
 
         score = 0;
         scoreText.setText('Score: ' + score);
+
+        
+        lives.children.iterate(function (child) {
+            child.setVisible(true);
+        });
     }
 
     // create animations for asteroids
@@ -335,8 +366,6 @@ function update() {
     if (!gameStarted || !liftOff) {
         playerAngle += player.speed;
         player.rotation = playerAngle;
-
-        // console.log(player.getHealth());
 
         moonAngle += moonSpeed;
         moon.rotation = moonAngle / 3;
@@ -367,11 +396,9 @@ function update() {
         moon.y = centerY - moonCenterOffset * Math.sin(moonAngle);
 
         if ((moon.x).toFixed(2) >= (centerX - moonOrbitRadius - 0.1).toFixed(2) && (moon.x).toFixed(2) <= (centerX - moonOrbitRadius + 0.1).toFixed(2)){
-            // console.log('min');
             moonTravelBack = true;
         }
         else if ((moon.x).toFixed(2) >= (centerX + moonOrbitRadius - 0.1).toFixed(2) && (moon.x).toFixed(2) <= (centerX + moonOrbitRadius + 0.1).toFixed(2)){
-            // console.log('max');
             moonTravelBack = false;
         }
 
@@ -425,6 +452,8 @@ function update() {
             atmosphere.y += 10;
             moon.y += 10;
 
+            
+
             // Enable gravity for stars
             stars.children.iterate(function (child) {
                 child.body.allowGravity = true;
@@ -440,51 +469,77 @@ function update() {
 
             enemies.children.iterate(function (child) {
                 child.weapon.setShooterPosition(child.x, child.y);
-                // child.fireWeapon(player.x, gameHeight);
-                child.fireWeapon(player.x, player.y);
+
+                if (child.behavior == 'passive'){
+                    // End y-coordinate is the height of the window
+                    let endY = gameWidth;
+                    // Calculate the vertical displacement (deltaY)
+                    let deltaY = endY - child.y;
+                    // Calculate the horizontal displacement (deltaX)
+                    // Using tan(angle) = deltaY / deltaX => deltaX = deltaY / tan(angle)
+                    let deltaX = deltaY / Math.tan(child.body.angle);
+                    // Calculate the end x-coordinate
+                    let endX = child.x + deltaX;                    
+                    child.fireWeapon(endX, endY);
+
+                }
 
                 if (child.behavior == 'aggresive' && child.y < player.y - 200) {
-                    child.move(player.x, player.y);
+                    child.fireWeapon(player.x, player.y);                    
+                    child.moveToPlayer(player.x, player.y);
                 }
 
             });
+
+            lives.children.iterate(function (child) {
+                var index = lives.children.entries.indexOf(child);
+                if (index > player.health){
+                    child.setVisible(false);
+                }
+            });
             
-            enemyRoll = Phaser.Math.Between(0, 100);
+            enemyRoll = Phaser.Math.Between(0, 1000);
             
             // start creating asteroids
-            if (enemyRoll > 97) {
+            if (enemyRoll > 970) {
                 var asteroid = asteroids.create(Phaser.Math.Between(0, config.width), 0, 'asteroid');
                 asteroid.setScale(0.1);
                 asteroid.setVelocityY(Phaser.Math.Between(50, 100));
                 asteroid.anims.play('asteroid', true);
             }
 
-            if (enemyRoll <= 1) {            
-                // start creating enemies
-                console.log('enemy roll: ', enemyRoll);
-                if (enemyRoll == 1) {
-                    let enemy = new Enemy(this, Phaser.Math.Between(0, config.width), 0, 'enemy', 0.1, 350, 0, 3, 'passive');
-                    // enemy.setScale(0.1);
-                    // enemy.rotation = 3;
-                    let enemyWeapon = new Weapon(centerX, centerY, this, 'pinkProjectile', 'pinkProjectile', 1, 600, true, enemy.x, enemy.y, 'pinkProjectile', 1000);
-                    enemy.setWeapon(enemyWeapon);
-                    enemy.body.allowGravity = false;
-
-                    enemies.add(enemy);
-                    enemy.move(player.x, player.y);
-                }
-                else {
-                    let enemy = new Enemy(this, Phaser.Math.Between(0, config.width), 0, 'enemyTwo', 0.1, 350, 0, 3, 'aggresive');
-                    enemy.setScale(1.3);
-                    // enemy.rotation = 3;
-                    let enemyWeapon = new Weapon(centerX, centerY, this, 'pinkProjectile', 'pinkProjectile', 1, 300, true, enemy.x, enemy.y, 'pinkProjectile', 2000);
-                    enemy.setWeapon(enemyWeapon);
-                    enemy.body.allowGravity = false;
-
-                    enemies.add(enemy);
-                    enemy.move(player.x, player.y);
-                }
+            // start creating new enemies
+            if (enemyRoll <= 15 && enemyRoll > 5){
+                let enemy = new Enemy(this, Phaser.Math.Between(0, config.width), 0, 'enemy', 0.1, 350, 0, 3, 'passive');
+                let enemyWeapon = new Weapon(centerX, centerY, this, 'pinkProjectile', 'pinkProjectile', 1, 600, true, enemy.x, enemy.y, 'pinkProjectile', 1000);
+                enemy.setWeapon(enemyWeapon);
+                enemy.body.allowGravity = false;         
+                
+                enemies.add(enemy);
+                enemy.moveDown(400);
             }
+            
+            else if (enemyRoll <= 5 && enemyRoll > 0) {
+                let enemy = new Enemy(this, 0, 0, 'enemyThree', 0.1, 350, 0, 3, 'passive');
+                let enemyWeapon = new Weapon(centerX, centerY, this, 'greenProjectile', 'greenProjectile', 2, 600, true, enemy.x, enemy.y, 'greenProjectile', 1000);
+                enemy.setWeapon(enemyWeapon);
+                enemy.body.allowGravity = false;
+
+                enemies.add(enemy);
+                enemy.moveToPlayer(player.x, player.y);
+            }
+
+            else if (enemyRoll == 0){
+                let enemy = new Enemy(this, Phaser.Math.Between(0, config.width), 0, 'enemyTwo', 0.1, 350, 0, 5, 'aggresive');
+                enemy.setScale(1.3);
+                let enemyWeapon = new Weapon(centerX, centerY, this, 'projectileRockets', 'projectileRockets', 5, 300, true, enemy.x, enemy.y, 'projectileRockets', 2000);
+                enemy.setWeapon(enemyWeapon);
+                enemy.body.allowGravity = false;
+
+                enemies.add(enemy);
+                enemy.moveToPlayer(player.x, player.y);
+            }
+            
             
 
             // controls for the player
