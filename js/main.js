@@ -146,7 +146,7 @@ function create() {
     player = new Player(this, centerX, centerY, 'rocket', 0.2, -0.002, 5);
     this.player = player;
     
-    playerWeapon = new Weapon(centerX, centerY, this, 'greyProjectile', 'greyProjectile', 1, 500, false, player.x, player.y, 'greyProjectile', 50);
+    playerWeapon = new Weapon(centerX, centerY, this, 'greyProjectile', 'greyProjectile', 0.5, 500, false, player.x, player.y, 'greyProjectile', 10);
     player.setWeapon(playerWeapon);
 
 
@@ -292,7 +292,9 @@ function create() {
     function gameRestart() {
         player.speed = -0.001;
         player.anims.play('idleRocket', true);
-
+        player.weapon.fireRate = 10;
+        player.weapon.projectileTexture = 'greyProjectile';
+        player.weapon.projectileDamage = 1;
         gameStarted = false;
         liftOff = false;
         turningAnimationPlayed = false;
