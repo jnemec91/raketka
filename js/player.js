@@ -4,34 +4,21 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y, texture, scale, speed, health) {
         super(scene, x, y, texture);
 
-        // Add this sprite to the scene
         scene.add.existing(this);
         scene.physics.add.existing(this);
-
-        // set default parameters for player
         this.setScale(scale);
         this.setVelocity(0, 0);
         this.setDepth(10);
-
-
-        // Set up physics properties
         this.setCollideWorldBounds(true);
         this.body.allowGravity = false;
-
-        // Set up animations if any
         this.createAnimations(scene);
-
-        // set health, speed, weapon
-        this.health = health+100;
+        this.health = health;
         this.speed = speed;
         this.weapon = null;
-        
-        // state variables
         this.turningAnimationPlayed = false;
     }
 
     createAnimations(scene) {
-
         this.anims.create({
             key: 'turnRight',
             frames: this.anims.generateFrameNumbers('rocket', { start: 1, end: 2 }),
@@ -65,8 +52,6 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
     takeDamage(){
         this.health -= 1;
-
-        // debug
         console.log("Player health: " + this.health);
     }
 
@@ -75,7 +60,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     fireWeapon(){
-        this.weapon.fire(this.x, 0);
+        this.weapon.fire(this.x-this.body.velocity.x / 100, 0);
     }
 
 }
